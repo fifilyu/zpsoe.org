@@ -1,0 +1,149 @@
+= Windows Server 2003 配置 IIS6 + PHP5 环境
+Fifi Lyu <fifilyu@gmail.com>
+2015年2月26日
+include::../common.adoc[]
+
+[abstract]
+安装并配置 IIS6 + PHP5.2.17 + ZendOptimizer3.3 + MySQL5.1 环境。
+
+== 环境描述
+.基础环境
+* 已安装 IIS6 + MSSQL2005 + ASP
+
+.准备包
+* php-5.2.17-Win32-VC6-x86.zip
+* mysql-5.1.69-win32.msi
+* ZendOptimizer-3.3.3-Windows-i386.exe
+* phpMyAdmin-4.0.4.1-all-languages.zip
+
+.最终目录结构
+* D:\PHP\MySQL-5.1.69
+* D:\PHP\PHP-5.2.17
+* D:\PHP\ZendOptimizer-3.3.3
+* D:\Web\phpMyAdmin
+
+== 安装配置
+
+=== MySQL
+
+.. 安装到 `D:\PHP\MySQL-5.1.69`
+.. data 目录路径为 `D:\PHP\MySQL-5.1.69`
+.. 选择 `增加 MySQL 到环境变量`
+.. root 密码设置为 aaayun
+
+=== PHP
+==== 解压 PHP 压缩包
+.. 进入 `D:\PHP` ，解压 `php-5.2.17-Win32-VC6-x86.zip` 到当前目录
+.. 重命名目录为 `D:\PHP\PHP-5.2.17`
+.. 增加 `Users` 默认权限
+
+[NOTE]
+IIS网站主目录的父目录也必须加上 `Users` 读取权限应用到 `只有该文件夹` 。否则IIS网站无法访问 PHP，提示 `Failed opening required...` 之类的错误。
+
+==== 配置 php.ini
+.. 复制 `D:\PHP\PHP-5.2.17\php.ini-recommended` 为 `D:\PHP\PHP-5.2.17\php.ini`
+
+.. 编辑 php.ini ，修改或启用以下参数：
+
+** short_open_tag = On
+** asp_tags = On
+** max_execution_time = 300
+** max_input_time = 600
+** memory_limit = 128M
+** upload_max_filesize = 8M
+** extension=php_curl.dll
+** extension=php_gd2.dll
+** extension=php_gettext.dll
+** extension=php_imap.dll
+** extension=php_mbstring.dll
+** extension=php_exif.dll
+** extension=php_mcrypt.dll
+** extension=php_mhash.dll
+** extension=php_mime_magic.dll
+** extension=php_mysql.dll
+** extension=php_mysqli.dll
+** extension=php_openssl.dll
+** extension=php_pdo.dll
+** extension=php_pdo_mysql.dll
+** extension=php_snmp.dll
+** extension=php_sockets.dll
+** extension=php_tidy.dll
+** extension=php_xmlrpc.dll
+** extension=php_xsl.dll
+** extension=php_zip.dll
+
+==== 设置环境变量
+.. 在 `我的电脑` 属性中，修改环境变量 `Path` ，增加路径：
+`D:\PHP\PHP-5.2.17;D:\PHP\PHP-5.2.17\ext;`
+
+.. 在 cmd 中执行命令 `echo %PATH%` ，使环境变量不用重启即可生效
+
+==== 支持 MySQL
+复制 `D:\PHP\PHP-5.2.17\libmysql.dll` 到 `D:\PHP\PHP-5.2.17\ext\libmysql.dll` 。
+
+==== 支持 OpenSSL
+.. 复制 `D:\PHP\PHP-5.2.17\libeay32.dll` 到 `C:\WINDOWS\system32`
+.. 复制 `D:\PHP\PHP-5.2.17\ssleay32.dll` 到 `C:\WINDOWS\system32`
+
+==== 添加 IIS 服务器扩展
+在 IIS 中，添加一个新的服务器扩展：
+
+.. `扩展名：` 填写 `PHP5.2.17`
+.. `要求的文件：` 填写 `D:\PHP\PHP-5.2.17\php5isapi.dll`
+
+==== 添加 IIS 扩展名
+在IIS中，选择 `网站`  -> `属性`  -> `主目录`  -> `配置`  -> `映射`  -> `缓存 ISAPI 扩展`  -> `添加`
+
+* `可执行文件：` 填写 `D:\PHP\PHP-5.2.17\php5isapi.dll`
+* `扩展名：` 填写 `.php`
+* 其它选项默认
+
+==== 使 IIS 配置生效
+保存 IIS 配置到磁盘。
+
+=== ZendOptimizer
+.. 执行安装程序 ZendOptimizer-3.3.3-Windows-i386.exe
+.. 安装到 `D:\PHP\ZendOptimizer-3.3.3`
+.. 设置 `php.ini 目录` 到 `D:\PHP\PHP-5.2.17`
+.. `web 主目录` 指定到 `D:\Web`
+
+== phpMyAdmin
+
+=== 解压
+解压 `phpMyAdmin-4.0.4.1-all-languages.zip` 到 `D:\Web\phpMyAdmin` 。
+
+=== phpMyAdmin
+复制 `D:\Web\phpMyAdmin\config.sample.inc.php` 为 `D:\Web\phpMyAdmin\config.inc.php` 。
+
+=== 取消版本检查
+phpmyadmin 中的 version_check.php，因为 phpmyadmin.net 被屏蔽导致登录后，非常慢。 在第一行增加代码:
+
+[source,php]
+----
+<?php
+exit;
+----
+
+==== 设置 IIS 站点
+..  增加 IIS_WPG 读写权限到 `D:\Web\phpMyAdmin`
+..  新建 IIS 站点 `phpMyAdmin` ，主目录设定为 `D:\Web\phpMyAdmin` ， `执行权限` 设置为 `纯脚本`
+..  因为 MySQL 使用默认密码，为了安全起见，设置 `主机头` 为 127.0.0.1 ， `TCP 端口` 为 8080 ，使 phpMyAdmin 只能在本地访问。
+
+[NOTE]
+IIS 站点 `phpMyAdmin` 主目录必须增加组 `guests` 的读取权限，否则访问 phpMyAdmin 将会提示 500 错误，无法包含php文件。
+
+== 测试 PHP 环境
+=== PHP 环境参数
+.. 建立 IIS 默认站点 `默认网站` ，设置 `主机头` 为空， `TCP 端口` 为 80
+.. 在 `默认网站` 的主目录中，建立 PHP 探针文件 - tz.php
+
+[source,php]
+----
+<?php phpinfo(); ?>
+----
+
+[start=3]
+.. 访问 URL 地址： <http://127.0.0.1/tz.php> ，确认 ZendOptimizer、OpenSSL 以及 MySQL 等等是否启用或者支持。
+
+=== phpMyAdmin
+访问 URL 地址： <http://127.0.0.1:8080> ，确认 phpMyAdmin 能否登录，访问是否缓慢(版本检查是否取消)。

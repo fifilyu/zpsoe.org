@@ -1,0 +1,17 @@
+= Fifi Lyu's AsciiDoc Practices
+Fifi Lyu <fifilyu@gmail.com>
+2015年2月27日
+include::../common.adoc[]
+
+[abstract]
+Fifi Lyu 的 AsciiDoc 风格。
+
+== 空格
+
+中文前后的英文字母、特殊符号，加一个空格分隔。比如，
+
+====
+** 英文字母：单词 panda 的中文是熊猫
+
+** 特殊符号：这是 PHP 代码 `<?php phpinfo(); ?>` ，对不对？
+====
