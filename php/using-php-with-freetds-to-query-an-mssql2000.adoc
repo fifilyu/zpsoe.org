@@ -1,0 +1,319 @@
+= Linux 下 PHP 连接 MSSQL2000 数据库（解决中文乱码）
+Fifi Lyu <fifilyu@gmail.com>
+2010年12月03日
+include::../common.adoc[]
+:imagesdir: using-php-with-freetds-to-query-an-mssql2000
+
+[abstract]
+其实 PHP 连接 MSSQL2000 数据库中文乱码的问题，无非就是两点。
+
+* MSSQL 服务器返回的结果是否是正确编码的字符串，比如是 GBK 或者 UTF-8 等可识别的编码。知道返回的是什么编码就好处理啦。如果结果是 GBK 编码，直接转换编码就可以。反之亦然。
+* 输出的 HTML 页面所定义的 charset (比如 content="text/html; charset=utf-8") 是GBK 还是 UTF-8。一定要保证 charset 和 经过 PHP 代码处理后的返回结果字符编码是一致的，要么都是 GBK，要么都是 UTF-8。
+
+
+== 系统平台
+
+----
+$ lsb_release -a
+Distributor ID:    Ubuntu
+Description:    Ubuntu 10.04.1 LTS
+Release:    10.04
+Codename:    lucid
+ansen@neusoft: /myhome$ php -v
+PHP 5.3.2-1ubuntu4.5 with Suhosin-Patch (cli) (built: Sep 17 2010 13:41:55) 
+Copyright (c) 1997-2009 The PHP Group
+Zend Engine v2.3.0, Copyright (c) 1998-2010 Zend Technologies
+ with Xdebug v2.0.5, Copyright (c) 2002-2008, by Derick Rethans
+----
+
+== 准备 MSSQL2000 测试数据库
+
+=== 设置数据库
+* 建立数据库：testdb
+* 建立登录用户：testdb_user
+* 设置登录密码：testdb_passwd
+
+=== 建立表结构以及初始化
+
+. 建立表结构
+
+[source,sql]
+----
+CREATE TABLE books
+(
+ b_id  int identity PRIMARY KEY,
+ b_title  varchar(100)  NOT NULL,
+ b_author  varchar(100)  NOT NULL,
+ b_released   varchar(50) NULL,
+ b_isbn   varchar(50) NOT NULL,
+ b_pages   varchar(50) NULL,
+ b_publisher  varchar(50) NOT NULL,
+ b_price  varchar(50) NULL,
+)
+
+----
+
+[start=2]
+. 导入初始测试数据
+
+[source,sql]
+----
+INSERT INTO books VALUES ('Linux系统编程','Robert love','2009年4月','978-7-5641-1519-7','0','O''Reilly Media','56.00');
+INSERT INTO books VALUES ('Perl语言入门（第五版）','Randal L','2009年9月','978-7-5641-1763-4','0','O''Reilly Media','48.00');
+INSERT INTO books VALUES ('Perl最佳实践','Damian Conway','2008年2月','978-7-5641-1009-3','504','O''Reilly Media','78.00');
+----
+
+
+== 安装配置第三方库  FreeTDS
+
+=== 安装 FreeTDS
+[source,shell]
+----
+$ sudo aptitude -y install php5-sybase freetds-bin
+----
+
+=== 配置 FreeTDS ，增加 MSSQL2000  数据源
+编辑 /etc/freetds/freetds.conf ，在文件最后增加所需的数据源信息。
+
+----
+$sudo vim /etc/freetds/freetds.conf
+[testsqlserver]
+ host = 122.112.31.82
+ port = 1433
+ tds version = 7.1
+----
+
+.内容说明
+testsqlserver:: 数据源名称，随便定义；
+host:: MSSQL2000 服务器 IP 地址；
+port:: MSSQL2000 服务器远程连接端口，默认是 1433 ；
+tds version:: *（解决中文乱码关键点 1 ）* TDS 协议版本，如果使用 MSSQL2000 ，那这里必须使用 7.1 ，不要使用默认的 7.0 。不然，你连接 MSSQL2000 返回的查询结果是乱码，即使转换编码也不行。你会死不瞑目......，具体明细请看 表 1 。
+
+.Versions of the TDS Protocol, by Product
+[cols="2*", options="header", width="50%"]
+|===
+|Product
+|TDS Version
+
+|Sybase before System 10, Microsoft SQL Server 6.x
+|4.2
+
+|Sybase System 10 and above
+|5.0
+
+|Sybase System SQL Anywhere
+|5.0 only
+
+|Microsoft SQL Server 7.0
+|7.0
+
+|Microsoft SQL Server 2000
+|7.1
+
+|Microsoft SQL Server 2005
+|7.2
+
+|===
+
+== 测试 FreeTDS 中配置的 MSSQL2000 数据源
+
+=== 测试直接连接数据库服务器
+
+----
+$tsql -H 122.112.31.82 -U testdb_user -p 1433
+locale is "zh_CN.utf8"
+locale charset is "UTF-8"
+Password:
+1> SELECT * FROM books;
+2> go
+b_id    b_title    b_author    b_released    b_isbn    b_pages    b_publisher    b_price
+1    Linux系统编程    Robert love    2009年4月    978-7-5641-1519-7    0    O'Reilly Media    56.00
+2    Perl语言入门（第五版）    Randal L    2009年9月    978-7-5641-1763-4    0    O'Reilly Media    48.00
+3    Perl最佳实践    Damian Conway    2008年2月    978-7-5641-1009-3    504    O'Reilly Media    78.00
+(3 rows affected)
+1> bye
+----
+
+=== 测试在 freetds.conf 文件中定义的数据源名称是否可以连接
+
+----
+$tsql -S testsqlserver -U testdb_user -p 1433
+locale is "zh_CN.utf8"
+locale charset is "UTF-8"
+Password: 
+1> SELECT * FROM books;
+2> go
+b_id    b_title    b_author    b_released    b_isbn    b_pages    b_publisher    b_price
+1    Linux系统编程    Robert love    2009年4月    978-7-5641-1519-7    0    O'Reilly Media    56.00
+2    Perl语言入门（第五版）    Randal L    2009年9月    978-7-5641-1763-4    0    O'Reilly Media    48.00
+3    Perl最佳实践    Damian Conway    2008年2月    978-7-5641-1009-3    504    O'Reilly Media    78.00
+(3 rows affected)
+1> bye
+----
+
+两次测试结果证明:: freetds.conf 文件中定义的数据源名称  testsqlserver  已经成功连接到指定的 MSSQL2000 数据库服务器上。FreeTDS 中配置的 MSSQL2000 数据源测试成功。
+
+== PHP 连接 MSSQL2000 数据库（解决中文乱码）实例代码
+
+直接复制实例代码到 PHP 文件中，通过浏览器访问自己Web服务器的URL即可。
+测试效果：多次刷新页面即可看到输出数据、插入数据以及删除数据等随机操作。
+
+解决中文乱码关键点 2:: 函数 convert2utf8() 和 convert2gbk() 用于转换字符串编码，解决 MSSQL （输出或者输入）中文乱码问题。
+
+[source,php]
+----
+<html>
+    <head>
+        <title>Linux 下 PHP 连接并读写 MSSQL2000 数据库测试</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <style type="text/css">
+            table,table td { 
+                  border-collapse:collapse;
+                  border: solid #000000;
+                  border-width:1px 1px 1px 1px;
+                  }
+            thead td{text-align: center;}
+        </style>
+    </head>
+    <body>
+        <table>
+            <thead>
+                <tr>
+                    <td colspan="8">书目</td>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>编号</td>
+                    <td>书名</td>
+                    <td>作者</td>
+                    <td>出版</td>
+                    <td>书号</td>
+                    <td>页数</td>
+                    <td>出版社</td>
+                    <td>定价</td>
+                </tr>
+                <?php
+                /*
+                 * 定义字符转换函数convert2utf8() convert2gbk()，解决mssql中文乱码问题
+                 */
+
+                function convert2utf8($string) {
+                    return iconv("gbk", "utf-8", $string);
+                }
+
+                function convert2gbk($string) {
+                    return iconv("utf-8", "gbk", $string);
+                }
+
+                function query($sqlstring) {
+                    $query = mssql_query($sqlstring);
+                    return $query;
+                }
+
+                function getBookInfo() {
+                    $sqlstring = "select * from books";
+                    $query = query($sqlstring);
+                    // 检查是否有记录返回
+                    if (!mssql_num_rows($query)) {
+                        echo '<tr><td colspan="8">没有任何记录</td></tr>';
+                    } else {
+                        while ($row = mssql_fetch_object($query)) {
+                            //该html页面输出是utf-8。
+                            //连接mssql2000执行sql代码，返回的结果要显示到页面上
+                            //需要使用convert2utf8()函数，将 gb2312 编码字符串转换为 utf-8 编码
+                            echo "<tr>";
+                            echo "<td>" . convert2utf8($row->b_id) . "</td>";
+                            echo "<td>" . convert2utf8($row->b_title) . "</td>";
+                            echo "<td>" . convert2utf8($row->b_author) . "</td>";
+                            echo "<td>" . convert2utf8($row->b_released) . "</td>";
+                            echo "<td>" . convert2utf8($row->b_isbn) . "</td>";
+                            echo "<td>" . convert2utf8($row->b_pages) . "</td>";
+                            echo "<td>" . convert2utf8($row->b_publisher) . "</td>";
+                            echo "<td>" . convert2utf8($row->b_price) . "</td>";
+                            echo "</tr>";
+                        }
+                    }
+                    // 释放查询结果
+                    mssql_free_result($query);
+                }
+                function insertBookInfo($sqlstring) {
+                    $query = query($sqlstring);
+                    if ($query)
+                        echo "成功插入行";
+                    else
+                        echo "插入操作失败";
+                }
+                function deleteBookInfo($sqlstring) {
+                    $query = query($sqlstring);
+                    if ($query)
+                        echo "成功删除行";
+                    else
+                        echo "删除操作失败";
+                }
+                $server = 'testsqlserver';
+                $username = 'testdb_user';
+                $password = 'testdb_passwd';
+                $database = 'testdb';
+
+                $conn = mssql_connect($server, $username, $password)
+                        or exit("不能连接 Microsoft SQL Server 2000 服务器 : $server");
+                $db = mssql_select_db($database) or exit("不能打开数据库 ：$database");
+
+                $insert_list = array(
+                    "INSERT INTO books VALUES ('Linux系统编程','Robert love',
+                        '2009年4月','978-7-5641-1519-7','0','O''Reilly Media','56.00');",
+                    "INSERT INTO books VALUES ('Perl语言入门（第五版）','Randal L',
+                        '2009年9月','978-7-5641-1763-4','0','O''Reilly Media','48.00');",
+                    "INSERT INTO books VALUES ('Perl最佳实践','Damian Conway',
+                        '2008年2月','978-7-5641-1009-3','504','O''Reilly Media','78.00');"
+                );
+                //随机选择sql插入代码，返回代码所在数组的索引
+                $insert_index = array_rand($insert_list);
+
+                $delete_list = array(
+                    "DELETE FROM books WHERE b_title = 'Linux系统编程';",
+                    "DELETE FROM books WHERE b_title = 'Perl语言入门（第五版）';",
+                    "DELETE FROM books WHERE b_title = 'Perl最佳实践';"
+                );
+                //随机选择sql删除代码，返回代码所在数组的索引
+                $delete_index = array_rand($delete_list);
+
+                //随机选择一种操作方式，返回该方式所在数组的索引
+                $do_list = array("get", "insert", "delete");
+                $do_index = array_rand($do_list);
+
+                //根据随机选择的操作方式，执行相应操作。
+                switch ($do_list[$do_index]) {
+                    case "insert":
+                        //该html页面输出显示是 utf-8 编码。
+                        //所以连接mssql2000执行sql代码，需要使用convert2gbk()函数，
+						//将 utf-8 编码字符串转换为 gb2312 编码
+                        insertBookInfo(convert2gbk($insert_list[$insert_index]));
+                        getBookInfo();
+                        break;
+                    case "delete":
+                        //该html页面输出显示是 utf-8 编码。
+                        //所以连接mssql2000执行sql代码，需要使用convert2gbk()函数，
+						//将 utf-8 编码字符串转换为 gb2312 编码
+                        deleteBookInfo(convert2gbk($delete_list[$delete_index]));
+                        getBookInfo();
+                        break;
+                    default:
+                        getBookInfo();
+                }
+                ?>
+            </tbody>
+        </table>
+    </body>
+</html>
+
+
+----
+
+运行结果截图:
+
+image::no.1.jpg[图 1]
+
+== 参考链接
+http://www.freetds.org/userguide/choosingtdsprotocol.htm

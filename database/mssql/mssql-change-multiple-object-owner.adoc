@@ -1,0 +1,218 @@
+= 批量更改数据库对象所有者
+Fifi Lyu <fifilyu@gmail.com>
+2009年4月18日
+include::../../common.adoc[]
+
+[abstract]
+经常导入用户提供的 MSSQL BAK 备份文件。由于 BAK 文件中包含了其它 MSSQL 数据库用户，在新的数据库服务器中导入后，数据库所有对象的所有者仍然是以前数据库服务器中的设置。最终，导入后的新数据库也是无法正常使用的。本文将简单介绍如何处理这样的情况。
+
+== 案例分析
+比如有数据库 test_db_name ，并且所有表、视图以及存储过程等的所有者都是 test_db_name 。当导入到服务器上的 MSSQL 中后，本地数据库中所有表、视图以及存储过程等的所有者都是 test_db_name 。比如有表  user，就会显示为 test_db_name.user 。而不是 dbo.user 。
+
+=== 单表
+只有一张表的情况，可以这样处理：
+
+[source,sql]
+----
+exec sp_changeobjectowner test_db_name.user, dbo
+----
+
+=== 多表
+但是整个数据库的对象所有者都是这个情况就不适用了。使用以下这个脚本可以解决：
+
+
+[source,sql]
+----
+DROP PROCEDURE #changeobjectowner
+
+GO
+
+CREATE   PROC   #changeobjectowner
+@xtype   varchar(50),
+@oldobjectowner   varchar(50),
+@newobjectowner   varchar(50)='dbo'
+AS
+   declare   @name   varchar(50)
+   declare   cursor_name   cursor   for
+   select   name   from   sysobjects   where   xtype=''+@xtype+''
+   open   cursor_name
+   fetch   next   from   cursor_name   into   @name
+   while   @@fetch_status=0
+        BEGIN
+           exec('sp_changeobjectowner   '''+@oldobjectowner+'.'+@name+''','+@newobjectowner+'')
+         fetch   next   from   cursor_name   into   @name
+        END
+   close   cursor_name
+   deallocate   cursor_name
+GO
+
+#changeobjectowner   'V','test_db_name'
+GO
+#changeobjectowner  'U','test_db_name'
+GO
+#changeobjectowner  'P','test_db_name'
+GO
+#changeobjectowner  'TF','test_db_name'
+GO
+----
+
+运行时，把脚本最后5行中的 “test_db_name” 替换为需要替换的所有者名字即可。
+
+* “V” 表示需要替换的数据库对象是*视图*
+* “U” 表示需要替换的数据库对象是*表*
+* “P” 表示需要替换的数据库对象是*存储过程*
+* “TF” 表示需要替换的数据库对象是*表函数*
+
+整个脚本的编写是基于对系统表 sysobjects 的查询。在数据库中创建的每个用户定义的架构范围内的对象（约束、默认值、日志、规则、存储过程等）在该表中均对应一行。更多关于 sysobjects 的介绍(见列表 sysobjects 表)。
+
+这个脚本可以很好的完成任务。运行出现的错误，不需要理会。
+
+[appendix]
+== sysobjects 表结构
+
+在数据库内创建的每个对象（约束、默认值、日志、规则、存储过程等）在表中占一行。只有在 tempdb 内，每个临时对象才在该表中占一行。
+
+.sysobjects 表
+[cols="1,1,5a", options="header"]
+|===
+|列名
+|数据类型
+|描述
+
+|name
+|sysname
+|对象名
+
+|Id
+|int
+|对象标识号
+
+|xtype
+|char(2)
+|对象类型，
+可以是下列对象类型中的一种：
+
+* C = CHECK 约束
+* D = 默认值或 DEFAULT 约束
+* F = FOREIGN KEY 约束
+* L = 日志
+* FN = 标量函数
+* IF = 内嵌表函数
+* P = 存储过程
+* PK = PRIMARY KEY 约束（类型是 K）
+* RF = 复制筛选存储过程
+* S = 系统表
+* TF = 表函数
+* TR = 触发器
+* U = 用户表
+* UQ = UNIQUE 约束（类型是 K）
+* V = 视图
+* X = 扩展存储过程
+
+|uid
+|smallint
+|所有者对象的用户 ID
+
+|info
+|smallint
+|保留，仅限内部使用
+
+|status
+|int
+|保留，仅限内部使用
+
+|base_schema_ver
+|int
+|保留，仅限内部使用
+
+|replinfo
+|int
+|保留，供复制使用
+
+|parent_obj
+|int
+|父对象的对象标识号（例如，对于触发器或约束，该标识号为表 ID）
+
+|crdate
+|datetime
+|对象的创建日期
+
+|ftcatid
+|smallint
+|为全文索引注册的所有用户表的全文目录标识符，对于没有注册的所有用户表则为 0
+
+|schema_ver
+|int
+|版本号，该版本号在每次表的架构更改时都增加
+
+|stats_schema_ver
+|int
+|保留，仅限内部使用
+
+|type
+|char(2)
+|
+对象类型，可以是下列值之一：
+
+* C = CHECK 约束
+* D = 默认值或 DEFAULT 约束
+* F = FOREIGN KEY 约束
+* FN = 标量函数
+* IF = 内嵌表函数
+* K = PRIMARY KEY 或 UNIQUE 约束
+* L = 日志
+* P = 存储过程
+* R = 规则
+* RF = 复制筛选存储过程
+* S = 系统表
+* TF = 表函数
+* TR = 触发器
+* U = 用户表
+* V = 视图
+* X = 扩展存储过程
+
+|userstat
+|smallint
+|保留
+
+|sysstat
+|smallint
+|保留，内部状态信息
+
+|indexdel
+|smallint
+|保留
+
+|refdate
+|datetime
+|保留
+
+|version
+|int
+|保留
+
+|deltrig
+|int
+|保留
+
+|instrig
+|int
+|保留
+
+|updtrig
+|int
+|保留
+
+|seltrig
+|int
+|保留
+
+|category
+|int
+|用于发布、约束和标识
+
+|cache
+|smallint
+|保留
+
+|===

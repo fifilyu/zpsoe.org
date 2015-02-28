@@ -1,0 +1,109 @@
+= Sort 命令排序文件列表，批量导入MySQL文件
+Fifi Lyu <fifilyu@gmail.com>
+include::../common.adoc[]
+:toc!:
+
+[abstract]
+ 平时工作中，时常需要操作MySQL备份文件（下称：SQL文件）导入。因为SQL文件量不大，每次都是傻傻的直接一个一个的导入。直到最近，遇到导入120个SQL文件的要求。直接无语.......，量变质变，唯有改进工作方法解决掉这个问题。
+
+== 描述
+
+=====
+[%hardbreaks]
+# `ls`
+090616_L1fXxQ-10.sql 090616_L1fXxQ-18.sql 090616_L1fXxQ-4.sql
+090616_L1fXxQ-11.sql 090616_L1fXxQ-19.sql 090616_L1fXxQ-5.sql
+090616_L1fXxQ-12.sql 090616_L1fXxQ-1.sql 090616_L1fXxQ-6.sql
+090616_L1fXxQ-13.sql 090616_L1fXxQ-20.sql 090616_L1fXxQ-7.sql
+090616_L1fXxQ-14.sql 090616_L1fXxQ-21.sql 090616_L1fXxQ-8.sql
+090616_L1fXxQ-15.sql 090616_L1fXxQ-22.sql 090616_L1fXxQ-9.sql
+090616_L1fXxQ-16.sql 090616_L1fXxQ-2.sql
+090616_L1fXxQ-17.sql 090616_L1fXxQ-3.sql
+=====
+
+== 思考
+从文件列表可以看出，都是 日期＋下划线＋字母＋中横杆＋数字 组成。文件名中数字以前的字符都相同，而数字以增量 1 ，从 1 到 22 增大。
+导入 MySQL 备份文件必须按照数字规律从小到大导入。而且文件列表的规律已经分析出来，就以数字为主键排序 文件，然后导入。
+
+== 方法
+
+=====
+[%hardbreaks]
+# `ls *.sql | sort -t - -n -k1 -k2`
+090616_L1fXxQ-1.sql
+090616_L1fXxQ-2.sql
+090616_L1fXxQ-3.sql
+090616_L1fXxQ-4.sql
+090616_L1fXxQ-5.sql
+090616_L1fXxQ-6.sql
+090616_L1fXxQ-7.sql
+090616_L1fXxQ-8.sql
+090616_L1fXxQ-9.sql
+090616_L1fXxQ-10.sql
+090616_L1fXxQ-11.sql
+090616_L1fXxQ-12.sql
+090616_L1fXxQ-13.sql
+090616_L1fXxQ-14.sql
+090616_L1fXxQ-15.sql
+090616_L1fXxQ-16.sql
+090616_L1fXxQ-17.sql
+090616_L1fXxQ-18.sql
+090616_L1fXxQ-19.sql
+090616_L1fXxQ-20.sql
+090616_L1fXxQ-21.sql
+090616_L1fXxQ-22.sql
+=====
+
+结合 Shell 命令，最终如下：
+[source,shell]
+----
+for backup_file_name in `ls *.sql | sort -t - -n -k1 -k2`; do mysql -u数据库用户名 -p数据库密码 数据库名称<./$backup_file_name; done;
+----
+
+.*Shell 分解说明*
+ls *.sql:: 列出当前目录下的SQL文件
+
+sort -t - -n -k1 -k2:: sort为排序命令，参数 “-t -” 表示以中横杆 “-” 为分割符，将文件名一份为二，将中横杆后的字符用于排序。“-n -k1 -k2” 表示按照升序排列字符， “-k1” 表示中横杆后的第一个数字字符，“-k2” 表示中横杆后的第二个数字字符。
++
+先 “-n” 按照数字大小排列，结果为：
++
+[%hardbreaks]
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+1
+20
+21
+22
+2
+3
+4
+5
+6
+7
+8
+9
++
+然后按照 “-k1” 排列，结果不变。
++
+再 “-k2” 排列。结果从1到22，升序排列。
+
+ls | sort -t - -n -k1 -k2:: 执行排序命令，按照尾部的数字大小排序
+
+\`ls | sort -t - -n -k1 -k2\`:: 获取排序命令的返回文件列表
+
+for backup_file_name in \`ls | sort -t - -n -k1 -k2\`; :: 循环从文件列表中取出一个文件名，并赋值给backup_file_name
+
+mysql -u数据库用户名 -p数据库密码 数据库名称<./$backup_file_name:: MySQL导入命令，将SQL文件$backup_file_name（Shell变量）导入MySQL
+
+do mysql -u数据库用户名 -p数据库密码 数据库名称<./$backup_file_name;:: 执行MySQL导入命令
+
+done;:: for循环结束标识符
+

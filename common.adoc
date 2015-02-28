@@ -2,3 +2,4 @@
 :toclevels: 3
 :numbered:
 :icons: font
+:source-highlighter: prettify

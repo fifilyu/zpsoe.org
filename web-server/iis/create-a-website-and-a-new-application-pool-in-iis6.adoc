@@ -1,0 +1,115 @@
+= IIS 6.0 创建安全并且资源独立的网站
+Fifi Lyu <fifilyu@gmail.com>
+2009年6月13日
+:imagesdir: create-a-website-and-a-new-application-pool-in-iis6
+include::../../common.adoc[]
+
+[abstract]
+IIS6 建立多个网站是一个看似简单的事情，却总是遇到问题。当然，需要安全、易用并且资源独立的话就更难了。本文将演示如何轻松应对这样的事情。
+
+.操作流程简介
+
+. 创建用于 IIS 网站服务的低权限系统帐号
+. 创建 IIS 应用进程池
+. 创建 IIS 网站
+. 设置 IIS 网站属性并绑定网站域名
+. 设置 IIS 网站权限
+. 解析域名并访问网站
+
+== 创建用于 IIS 网站服务的低权限系统帐号
+=== 创建帐号
+在 *_我的电脑_* 上右键，找到并打开 *_管理_* 。然后依次打开 *_计算机管理(本地)_* -> *_系统工具_* -> *_本地用户和组_* -> *_用户_* 。在 *_用户_* 上右键，选择 *_新用户_* 。
+
+image::create_iis_user.jpg[title="创建系统帐号", alt="创建系统帐号"]
+
+=== 设置帐号
+到 *_用户_* 里面找到刚才建立的帐号 *_myweb_user_* ，在 *_myweb_user_* 上右键并选择 *_属性_* 。在对话框中，删除 *_Users_* ，添加上 *_Guests_* 和 *_IIS_WPG_* 。单击 *_确定_* 后，也就建立好了系统帐号。
+
+image::update_iis_user.jpg[title="设置 IIS 用户权限", alt="设置 IIS 用户权限"]
+
+== 创建 IIS 应用进程池
+=== 创建 IIS 应用进程池
+打开 *_Internet 信息服务(IIS)管理器_* ，在 *_应用程序池_* 上单击右键并选择 *_新建_* -> *_应用程序池_* 。在弹出的对话框的 *_应用程序池 ID_* 中填写上程序池名字，这里填写 *_myweb_* 。
+
+image::create_iis_pool.jpg[title="创建 IIS 应用进程池", alt="创建 IIS 应用进程池"]
+
+=== 设置 IIS 应用进程池
+在 *_应用程序池_* 中，找到刚才建立的应用程序池 *_myweb_* 。在 *_myweb_* 上右键并选择 *_属性_* ，在弹出的对话框中，选择 *_标识_* 选项卡，将 *_用户名_* 和 *_密码_* 修改为刚才建立的帐号以及对应的密码。这里，填写 *_myweb_user_* ，密码也填写上。最后，单击 *_确定_* 就建立成功了一个应用程序池。
+
+image::update_iis_pool.jpg[title="设置 IIS 应用进程池", alt="设置 IIS 应用进程池"]
+
+== 创建 IIS 网站
+. 打开 *_Internet 信息服务(IIS)管理器_* ，在 *_网站_* 上右键，选择 *_新建_* -> *_网站_* 。然后，直接单击对话框的 *_下一步_* 。
+
+image::create_iis_web_1.jpg[title="创建 IIS 网站1", alt="创建 IIS 网站1"]
+
+[start=2]
+. 在 *_此网站的主机头_* 填写上自己的域名或者任意的名字，这里就填写 *_myweb_* 吧！然后，直接 *_下一步_* 。
+
+image::create_iis_web_2.jpg[title="创建 IIS 网站2", alt="创建 IIS 网站2"]
+
+[start=3]
+. 在 *_路径(P)_* 填写上网页将要存放的文件夹路径，我们这里将网页保存到 D:\web\myweb_web_files这个文件夹。所以，自然也就填写上 *_D:\web\myweb_web_files_* 。然后，直接 *_下一步_* 。
+
+image::create_iis_web_3.jpg[title="创建 IIS 网站3", alt="创建 IIS 网站3"]
+
+[start=4]
+. 默认 *_读取_* 已经勾上了，这个就可以了，这里什么都不用修改。直接 *_下一步_* 。
+
+image::create_iis_web_4.jpg[title="创建 IIS 网站4", alt="创建 IIS 网站4"]
+
+[start=5]
+. 直接 *_完成_* ，就成功建立了一个 IIS 网站。下面只需要修改一下IIS 网站 *_属性_* 即可访问。
+
+image::create_iis_web_5.jpg[title="创建 IIS 网站5", alt="创建 IIS 网站5"]
+
+== 设置 IIS 网站属性并绑定域名
+
+. 打开 *_Internet 信息服务(IIS)管理器_* ，在 *_网站_* 里面找到刚才建立的 IIS 网站 *_myweb_* ，在 *_myweb_* 上右键并选择 *_属性_* 。在弹出的对话框中，找到 *_主目录_* 选项卡。修改 *_执行权限_* 和 *_应用程序池_* 。
+
+image::update_iis_web_1.jpg[title="设置 IIS 网站属性1", alt="设置 IIS 网站属性1"]
+
+[start=2]
+. 在 *_myweb_* 上右键并选择 *_属性_* 。在弹出的对话框中，找到 *_网站_* 选项卡。单击 *_高级_* ，找到弹出的对话框中 *_添加_* 并单击。添加 www.myweb.com 到 *_主机头值_* 里面。 *_TCP端口_* 填写 *_80_* 。最后， *_确定_* 即可。重复这个操作，在 *_主机头值_* 填写不同的域名，可以实现一个网站绑定多个域名访问，比如 myweb.com 、bbs.myweb.com 等等。
+
+image::update_iis_web_2.jpg[title="设置 IIS 网站属性2", alt="设置 IIS 网站属性2"]
+image::update_iis_web_3.jpg[title="设置 IIS 网站属性3", alt="设置 IIS 网站属性3"]
+
+[start=3]
+. 在 *_myweb_* 上右键并选择 *_属性_* 。在弹出的对话框中，找到 *_目录安全性_* 选项卡。然后，找到 *_身份验证和访问控制_* 下面的 *_编辑_* 并单击。在弹出的对话框中填写上最开始建立的系统帐号和密码（不要填写错误）。最后直接连续两次 *_确定_* ，保存修改的 IIS 网站属性设置。
+
+image::update_iis_web_4.jpg[title="设置 IIS 网站属性4", alt="设置 IIS 网站属性4"]
+
+== 设置 IIS 网站权限
+
+.在 *_myweb_* 上右键并选择 *_权限_* 。在弹出的对话框中，单击 *_高级_* 。
+
+image::update_iis_permissions_1.jpg[title="设置 IIS 网站权限1", alt="设置 IIS 网站权限1"]
+
+[start=2]
+. 找到并单击 *_权限项目_* 下的 *_添加_* 。
+
+image::update_iis_permissions_2.jpg[title="设置 IIS 网站权限2", alt="设置 IIS 网站权限2"]
+
+[start=3]
+. 在 *_输入要选择的对象名称_* 中输入 *_myweb_user_* 。然后，单击 *_确定_* 。
+
+image::update_iis_permissions_3.jpg[title="设置 IIS 网站权限3", alt="设置 IIS 网站权限3"]
+
+[start=3]
+. 将 *_完全控制_* 后面的 *_允许_* 的框选中。然后，将 *_遍历文件夹/运行文件_* 后面 *_允许_* 的框取消。最后，单击两个 *_确定_* 。
+
+image::update_iis_permissions_4.jpg[title="设置 IIS 网站权限4", alt="设置 IIS 网站权限4"]
+image::update_iis_permissions_5.jpg[title="设置 IIS 网站权限5", alt="设置 IIS 网站权限5"]
+
+[start=5]
+. 最后，单击 *_确定_* 。IIS 网站 属性就设置完毕。
+
+image::update_iis_permissions_6.jpg[title="设置 IIS 网站权限6", alt="设置 IIS 网站权限6"]
+
+== 解析域名并访问网站
+至此，整个建立 IIS 网站也就介绍完了。剩下的工作就是，解析域名 www.myweb.com ，即可访问网站 http://www.myweb.com 。
+
+[NOTE]
+需要访问 http://bbs.myweb.com 或 http://myweb.com ，重复绑定和解析域名操作即可。
+

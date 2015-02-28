@@ -1,0 +1,137 @@
+= Sort 命令排序文件列表，批量导入MySQL文件
+Fifi Lyu <fifilyu@gmail.com>
+2010年11月24日
+include::../../common.adoc[]
+:toc!:
+
+[abstract]
+网上有很多类似于《查看 MySQL 表使用的存储引擎》的文章，不过都不严谨。使用 `SHOW CREATE TABLE 表名` 查看。这种方式查出的结果在某些情况下是不准确的。
+
+比如创建表 "test"
+
+[source,sql]
+----
+CREATE TABLE test (
+ id INT(11) default NULL auto_increment,
+ s char(60) default NULL,
+ PRIMARY KEY (id)
+) ENGINE=InnoDB;
+----
+
+一般情况这样没任何问题。但是，如果MySQL服务器在配置中，未启用 InnoDB 存储引擎。在创建表 "test" 时，MySQL会自动选择默认的存储引擎 MyISAM 创建。
+
+== 实例演示
+.MySQL 服务器基本情况
+* MySQL 服务器未启用 InnoDB 存储引擎
+* 测试数据库库名： mytest
+* 测试数据库表名： test
+* 测试数据库登录帐号： root
+* 测试数据帐号登录密码： mypassword
+
+列 "Engine" 下显示的值表示表正在使用的 MySQL 存储引擎。在未启用 InnoDB 存储引擎的情况下，我们可以发现正确的方式返回的结果里面，列 "Engine" 为 "MyISAM"，并不是 "InnoDB" 存储引擎。所以，使用 “SHOW CREATE TABLE 表名” 查看表使用的 MySQL 存储引擎是不准确的。
+
+=== 确认 MySQL 服务器 是否启用 InnoDB 存储引擎
+
+----
+mysql> SHOW ENGINES;
++------------+---------+----------------------------------------------------------+(省略)
+| Engine     | Support | Comment                                                  |(省略)
++------------+---------+----------------------------------------------------------+(省略)
+| InnoDB     | NO      | Supports transactions, row-level locking, and foreign keys|(省略)
+| MRG_MYISAM | YES     | Collection of identical MyISAM tables                  |(省略)
+| BLACKHOLE  | YES     | /dev/null storage engine (anything you write to it disa(省略)
+| CSV        | YES     | CSV storage engine                                       |(省略)
+| MEMORY     | YES     | Hash based, stored in memory, useful for temporary tables|(省略)
+| FEDERATED  | NO      | Federated MySQL storage engine                           |(省略)
+| ARCHIVE    | YES     | Archive storage engine                                   |(省略)
+| MyISAM     | DEFAULT | Default engine as of MySQL 3.23 with great performance|(省略)
++------------+---------+----------------------------------------------------------+(省略)
+8 rows in set (0.00 sec)
+
+mysql>
+﻿
+----
+
+返回结果是： "InnoDB" 对应的 "Support" 等于 “NO” ，表示未启用 InnoDB 存储引擎。
+
+=== 创建表 "test"
+
+[source,sql]
+----
+mysql> create database mytest;
+Query OK, 1 row affected (0.02 sec)
+mysql> use mytest;
+Database changed
+mysql> CREATE TABLE test (
+ -> id INT(11) default NULL auto_increment,
+ -> s char(60) default NULL,
+ -> PRIMARY KEY (id)
+ -> ) ENGINE=InnoDB;
+Query OK, 0 rows affected, 2 warnings (0.06 sec)
+mysql>
+
+----
+
+=== 使用不准确的方式
+[source,sql]
+----
+SHOW CREATE TABLE 表名
+----
+
+----
+﻿mysql> SHOW CREATE TABLE test;
++-------+----------------------------------------------------------------------------+
+| Table | Create Table|
++-------+----------------------------------------------------------------------------+
+| test  | CREATE TABLE `test` (
+ `id` int(11) NOT NULL AUTO_INCREMENT,
+ `s` char(60) DEFAULT NULL,
+ PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 |
++-------+----------------------------------------------------------------------------+
+1 row in set (0.00 sec)
+mysql>
+
+----
+
+=== 正确方式一
+[source,sql]
+----
+SHOW TABLE STATUS from 数据库库名 where Name='表名';
+----
+
+----
+$ mysql -uroot -p'mypassword'
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 221
+Server version: 5.1.41-3ubuntu12.7 (Ubuntu)
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> SHOW TABLE STATUS from mytest where Name='test';
++------------+--------+---------+------------+------+----------------+-------------+(省略)
+| Name | Engine | Version | Row_format | Rows | Avg_row_length | Data_length |(省略)
++------------+--------+---------+------------+------+----------------+-------------+(省略)
+| test | MyISAM |      10 | Fixed      |    0 |              0 |           0 |(省略)
++------------+--------+---------+------------+------+----------------+-------------+(省略)
+1 row in set (0.02 sec)
+
+mysql>
+
+----
+
+=== 正确方式二
+[source,sql]
+----
+mysqlshow -u 数据库登录帐号 -p '数据库登录帐号密码' --status 数据库库名 表名
+----
+
+----
+$ mysqlshow -uroot -p'mypassword' --status mytest test
+Database:mytest  Wildcard: test
++------------+--------+---------+------------+------+----------------+-------------+(省略)
+| Name | Engine | Version | Row_format | Rows | Avg_row_length | Data_length |(省略)
++------------+--------+---------+------------+------+----------------+-------------+(省略)
+| test | MyISAM |      10 | Fixed      |    0 |              0 |           0 |(省略)
++------------+--------+---------+------------+------+----------------+-------------+(省略)
+----

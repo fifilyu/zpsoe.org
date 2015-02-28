@@ -1,0 +1,22 @@
+= Dell Inspiron 1427 无法安装 Windows XP
+Fifi Lyu <fifilyu@gmail.com>
+2009年6月20日
+include::../common.adoc[]
+:toc!:
+
+== 故障描述
+
+全新 Dell Inspiron 1427 笔记本，预装 Windows Vista。需要删掉，直接安装 Windows XP。
+
+* 使用 Ghost 光盘，直接 Ghost 一个 Windows XP 到硬盘分区。结果， Ghost 过程中，无缘无故提示失败或者退出
+* 使用 Windows XP 的原版安装 CD 安装，读取 CD 文件过程中，直接蓝屏
+
+== 分析
+最有可能是 SATA 硬盘驱动问题，导致安装 Windows XP 的时候无法识别硬盘。由于 Windows XP 相对古老，较新的硬件默认 BIOS 可能是 AHCI 模式。
+
+== 解决办法
+
+开机按 *_F2_* ，进入 BIOS 界面，找到导航栏第二个选项卡： *_Advanced_* ，*_Advanced_* 下最后一行，将 *_SATA Mode Selection: [AHCI]_* 修改为 *_SATA Mode Selection: [ATA]_* ，然后 *_F10_* 保存对 BIOS 的修改并退出，最后即可正常安装 Windows XP。
+
+[NOTE]
+AHCI 和 ATA 的区别，请 Google 。

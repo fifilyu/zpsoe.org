@@ -1,0 +1,26 @@
+= 禁止 Windows 2003 连接 VPN 后自动修改默认路由网关(Linux PPTP VPN)
+Fifi Lyu <fifilyu@gmail.com>
+2010年11月25日
+include::../common.adoc[]
+:toc!:
+:imagesdir: disable-deafult-gateway-on-windows-2003-pptp-vpn-client
+
+== 描述
+在一台 Windows Server 2003 服务器(A)上连接 VPN ，然后在 A 上去连接另外一台香港 Windows Server 2003 服务器(B)。因为不需要 VPN 中转 A 服务器所有出去的数据，仅仅中转和 B 服务器通信的数据。所以不需要使用 VPN 充当路由出口。比如 VPN 服务器设置的网关是：10.0.0.1， A 服务器默认路由网关是221.10.246.1。连接 VPN 后，A 服务器的默认路由网关将被修改为10.0.0.1。A 服务器所有对外的通信数据将从 VPN 服务器出去。
+
+== 解决方法
+
+. 找到要修改的VPN，在VPN上单击右键，选择 *_属性_* 菜单
+
+image::no.1.jpg[图 1]
+
+[start=2]
+. 在弹出的属性页面，找到并单击 *_网络_* 选项卡。选中 *_此连接使用下列项目_* 下的 *_Internet 协议(TCP/IP)_* 协议选项，然后单击 *_属性_* 按钮
+
+image::no.2.jpg[图 2]
+image::no.3.jpg[图 3]
+
+[start=3]
+. 单击 *_Internet 协议(TCP/IP)属性_* 页面右下方的 *_高级_* 按钮。然后，在弹出的 *_高级 TCP/IP 设置_* 页面正中找到 *_在远程网络上使用默认网关_* 选项，去掉默认打上的勾，最后单击 *_确定_*
+
+image::no.4.jpg[图 4]

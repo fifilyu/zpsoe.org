@@ -4,14 +4,58 @@ Fifi Lyu <fifilyu@gmail.com>
 include::../common.adoc[]
 
 [abstract]
-Fifi Lyu 的 AsciiDoc 风格。
+Fifi Lyu 的 AsciiDoc 文档。
 
 == 空格
 
 中文前后的英文字母、特殊符号，加一个空格分隔。比如，
 
 ====
-** 英文字母：单词 panda 的中文是熊猫
+** 英文字母：单词 panda 的中文是熊猫  “V” 表示需要替换的数据库对象是 视图
 
 ** 特殊符号：这是 PHP 代码 `<?php phpinfo(); ?>` ，对不对？
+
 ====
+
+== 硬换行
+[source,asciidoc]
+----
+[%hardbreaks]
+Ruby is red.
+Java is black.
+----
+====
+[%hardbreaks]
+Ruby is red.
+Java is black.
+====
+
+== 表格
+.示例1
+[cols="2,2,5a"]
+|===
+|Firefox
+|Browser
+|Mozilla Firefox is an open-source web browser.
+
+It's designed for:
+
+* standards compliance
+* performance
+* portability
+
+http://getfirefox.com[Get Firefox]!
+|===
+
+.cols 属性解释
+. 2 宽度2
+. 2 宽度2
+. 5a 宽度5, a表示asciidoc，此列中允许使用 asciidoc 语法
+
+== 语法高亮
+Syntax highlighting is enabled by setting the source-highlighter attribute in the document header or passed as an argument.
+
+:source-highlighter: prettify
+
+The valid options are coderay, highlightjs, prettify, and pygments.
+
