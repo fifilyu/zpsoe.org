@@ -1,0 +1,43 @@
+= VirtualBox Guest 访问 Ubuntu 10.04 宿主的 USB 设备
+Fifi Lyu <fifilyu@gmail.com>
+2011年02月27日
+:imagesdir: how-to-pass-through-usb-devices-to-guest-in-virtualbox-with-ubuntu-10.04
+include::../../common.adoc[]
+:toc!:
+
+== 系统平台
+
+----
+$ sudo lsb_release -a
+Distributor ID:    Ubuntu
+Description:    Ubuntu 10.04.2 LTS
+Release:    10.04
+Codename:    lucid
+----
+
+== 问题描述
+在 Ubuntu 上安装 VirtualBox (简称 vbox ) 后，虚拟 CentOS 和 Windows XP 方便做一些测试工作。比如在 Xp 系统中使用 U 盘就傻眼了。不管怎么设置，vbox 就是不给力，U  盘在 XP 中就是不显示出来。经过分析，确认是权限问题。
+
+== 解决方法
+
+. 将自己的用户添加到 vboxusers 用户组。我的用户名是：fifilyu
+
+----
+$ sudo addgroup fifilyu vboxusers
+[sudo] password for fifilyu: (提示输入密码)
+正在添加用户"fifilyu"到"vboxusers"组...
+正在将用户“fifilyu”加入到“vboxusers”组中
+完成。
+----
+
+[start=2]
+. 重启 Ubuntu
+
+. 设置 vbox 支持 USB 设备
+
+image::no.1.jpg[title="设置 vbox 支持 USB 设备", alt="设置 vbox 支持 USB 设备"]
+
+[start=4]
+. U 盘在 XP 虚拟机中成功加载的截图
+
+image::no.2.jpg[title="测试截图", alt="测试截图"]

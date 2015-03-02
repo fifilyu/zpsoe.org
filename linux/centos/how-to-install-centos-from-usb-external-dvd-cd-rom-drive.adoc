@@ -1,0 +1,49 @@
+= 从 USB CD/DVD 光驱安装 CentOS
+Fifi Lyu <fifilyu@gmail.com>
+2011年02月28日
+:imagesdir: how-to-install-centos-from-usb-external-dvd-cd-rom-drive
+include::../../common.adoc[]
+:toc!:
+
+[NOTE]
+*使用硬盘和U盘安装的情况除外，本文只讨论用 USB 光驱安装。*
+
+
+== 适用情况
+* 有一个 USB CD/DVD 光驱
+* 有一张 CentOS DVD 光盘 或者 一套(多张) CentOS CD光盘
+* 任意一个 U 盘
+* 服务器 Dell PowerEdge 410/610/1950
+
+== 系统版本
+    CentOS-5.5-x86_64
+
+== 描述
+
+平时使用普通 IDE 接口的 CD/DVD 光驱从光盘安装 CentOS 一直都很顺利。郁闷的是因为今天要测试的一台服务器是没有 IDE 接口的，只能从 USB 光驱安装。那问题也就来了：
+从 USB 光驱启动进入安装界面，按回车选择图形安装，却莫名出现文本安装的提示界面。出现这个问题的原因是 CentOS 安装程序没加载 USB 驱动，导致在此时 CentOS  安装程序无法识别 USB 光驱。
+
+以下出错时的截图（正常时应该是X图形界面）:
+
+. 选择安装时所用语言
+
+image::no.1.jpg[title="选择安装时所用语言", alt="选择安装时所用语言"]
+
+[start=2]
+. 选择键盘布局
+
+image::no.2.jpg[title="选择键盘布局", alt="选择键盘布局"]
+
+[start=3]
+. 选择安装媒介，此时提示选择 CentOS 光盘所在的介质。但是没识别到 USB 光驱，无论怎么选择也是没用的
+
+image::no.3.jpg[title="选择安装媒介", alt="选择安装媒介"]
+
+
+== 解决方法
+. 关机
+. *找一个 U 盘插到服务器上(任何能被被识别的 U 盘都可以，当然包括空白的 U 盘 ^_^)*。这步是解决问题的关键
+. 在 BIOS 中设置从 USB 光驱启动
+. 启动 CentOS 安装界面后，安装程序会自动加载 USB 驱动，成功后会正常进入熟悉的 X 安装界面
+. 手动取下 U 盘，不管安装程序的报错等信息，无关紧要
+. 继续安装即可，到此问题解决
