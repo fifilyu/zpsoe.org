@@ -1,0 +1,95 @@
+= 在 CentOS 5 上安装 shadowsocks
+Fifi Lyu <fifilyu@gmail.com>
+2015年4月8日
+include::../../common.adoc[]
+:toc!:
+
+== 安装方法
+
+从 https://pypi.python.org/pypi/shadowsocks 查到， *shadowsocks* 依赖 Python 2.6 及以上版本。
+
+CentOS 5 默认 Python 版本是 2.4。
+
+----
+# install python26
+rpm -ivh https://dl.fedoraproject.org/pub/epel/5/i386/epel-release-5-4.noarch.rpm
+yum install -y python26
+
+# install setuptools
+wget -c peak.telecommunity.com/dist/ez_setup.py -O - | python26
+
+# update /etc/pki/tls/certs/ca-bundle.crt
+yum update -y openssl
+
+easy_install pip
+pip install shadowsocks
+----
+
+== 问题
+
+=== 描述
+
+----
+[root@CentOS5 ~]# easy_install pip
+Searching for pip
+Reading https://pypi.python.org/simple/pip/
+Download error on https://pypi.python.org/simple/pip/: [Errno 1] _ssl.c:491: error:14090086:SSL routines:SSL3_GET_SERVER_CERTIFICATE:certificate verify failed -- Some packages may not be found!
+Couldn't find index page for 'pip' (maybe misspelled?)
+Scanning index of all packages (this may take a while)
+Reading https://pypi.python.org/simple/
+Download error on https://pypi.python.org/simple/: [Errno 1] _ssl.c:491: error:14090086:SSL routines:SSL3_GET_SERVER_CERTIFICATE:certificate verify failed -- Some packages may not be found!
+No local packages or download links found for pip
+error: Could not find suitable distribution for Requirement.parse('pip')
+----
+
+----
+[root@CentOS5 ~]# pip install shadowsocks
+Collecting shadowsocks
+/usr/lib/python2.6/site-packages/pip-6.1.1-py2.6.egg/pip/_vendor/requests/packages/urllib3/util/ssl_.py:79: InsecurePlatformWarning: A true SSLContext object is not available. This prevents urllib3 from configuring SSL appropriately and may cause certain SSL connections to fail. For more information, see https://urllib3.readthedocs.org/en/latest/security.html#insecureplatformwarning.
+  InsecurePlatformWarning
+/usr/lib/python2.6/site-packages/pip-6.1.1-py2.6.egg/pip/_vendor/requests/packages/urllib3/util/ssl_.py:79: InsecurePlatformWarning: A true SSLContext object is not available. This prevents urllib3 from configuring SSL appropriately and may cause certain SSL connections to fail. For more information, see https://urllib3.readthedocs.org/en/latest/security.html#insecureplatformwarning.
+  InsecurePlatformWarning
+  Could not find a version that satisfies the requirement shadowsocks (from versions: )
+  No matching distribution found for shadowsocks
+----
+
+出现的错误都和访问 HTTPS 有关。SSL 出现某种错误，导致 HTTPS 访问失败。
+
+=== 分析
+
+----
+[root@CentOS5 ~]# yum install -y strace
+[root@CentOS5 ~]# strace easy_install pip
+......
+stat64("/etc/pki/tls/certs/ca-bundle.crt", {st_mode=S_IFREG|0644, st_size=468699, ...}) = 0
+......
+----
+
+跟踪执行过程发现，报错之前最后一个打开的文件 `/etc/pki/tls/certs/ca-bundle.crt`。
+
+这个明显是根证书相关的配置文件，怀疑访问 HTTPS 时，需要使用此文件做 SSL 验证。
+
+由于系统版本比较老，自然 `/etc/pki/tls/certs/ca-bundle.crt` 是缺少最新的根证书的，想办法升级之。
+
+==== 解决
+
+. 找到此文件所属的软件包
+
+----
+[root@CentOS5 ~]# rpm -qf /etc/pki/tls/certs/ca-bundle.crt
+openssl-0.9.8e-12.el5_11
+----
+
+[start=2]
+. 更新软件包
+----
+[root@CentOS5 ~]# yum update openssl
+----
+
+[start=3]
+. 确认升级结果
+
+----
+[root@CentOS5 ~]# rpm -qf /etc/pki/tls/certs/ca-bundle.crt
+openssl-0.9.8e-32.el5_11
+----
