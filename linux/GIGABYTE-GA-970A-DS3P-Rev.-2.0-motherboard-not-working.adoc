@@ -1,5 +1,6 @@
 = GIGABYTE GA-970A-DS3P Rev. 2.0 主板问题
 Fifi Lyu <fifilyu@gmail.com>
+2015年4月8日
 include::../common.adoc[]
 :toc!:
 
