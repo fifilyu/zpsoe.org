@@ -1,0 +1,41 @@
+= GIGABYTE GA-970A-DS3P Rev. 2.0 主板问题
+Fifi Lyu <fifilyu@gmail.com>
+include::../common.adoc[]
+:toc!:
+
+[abstract]
+购买技嘉大板 *GA-970A-DS3P Rev. 2.0* 换下坏掉的老主板。
+
+启动到 *64 位 Arch Linux* 和 *32 位 Ubuntu* 下，发现网卡和 USB 工作不正常。
+
+启动到 *32 位 Windows 7* 下，USB 工作不正常。
+
+== 描述
+网卡::
+. Arch Linux 在 Gnome Shell 下网卡无法获取 DHCP，即使配置静态 IP 网络同样不通
+. 从 Arch Linux 安装 U 盘启动，网卡工作正常
+. Ubuntu 网卡开始几次启动，网卡正常。更改几次 BIOS 设置后，网卡出现同样的问题（不确定具体是什么 BIOS 参数导致，重载默认 BIOS 问题同样存在）
+
+USB::
+. Arch Linux 下 ，USB 机械键盘和鼠标插在 USB2.0 插座上，进入桌面后始终失效，必须插在 USB3.0 插座上
+. Ubuntu 下，USB 接口一切正常
+. 以前的 Windows 7 下，USB 插座全部失效。但是，在新主板上重装 Windows 7之后，USB 插座一切正常
+
+== 思考
+Windows USB 的问题应该是无法识别主板设备导致。更换了主板，本身就需要重装 Windows。以此判断，Windows 支持应该是没问题的。
+
+从 Linux 出现的现象可以确定主板对 Linux 的支持不好。考虑升级 BIOS 程序，在技嘉官网没找到更新的 BIOS 版本，放弃。
+
+以 “GA-970A-DS3P Linux” Google 之。
+
+
+== 解决方法
+
+进入 BIOS ，找到 `Peripherals` -> `IOMMU Controller`，将 `IOMMU` 从 `Disable` 修改为 `Enable`。
+
+== 参考
+. http://ubuntuforums.org/showthread.php?p=12488183[*GIGABYTE GA-970A-DS3 motherboard not working with 64 bit kernel*]
+
+. http://ubuntuforums.org/showthread.php?p=12499970[*USB and networking broken in 64-bit ubuntu for new motherboard*]
+
+. http://en.wikipedia.org/wiki/IOMMU[*IOMMU*]
